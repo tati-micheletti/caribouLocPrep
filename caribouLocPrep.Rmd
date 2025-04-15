@@ -1,0 +1,101 @@
+---
+title: "caribouLocPrep Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'caribouLocPrep', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+  bibliography: citations/references_caribouLocPrep.bib
+link-citations: true
+always_allow_html: true
+---
+
+# caribouLocPrep Module
+
+<!-- the following are text references used in captions for LaTeX compatibility -->
+(ref:caribouLocPrep) *caribouLocPrep*
+
+```{r setup-caribouLocPrep, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
+
+dir.create("figures", showWarnings = FALSE)
+
+download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
+              destfile = "figures/markdownBadge.png",
+              mode = 'wb')
+```
+
+[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
+
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
+
+#### Authors:
+
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "caribouLocPrep", path = '..')$authors), sep = ', ')`
+<!-- ideally separate authors with new lines, '\n' not working -->
+
+## Module Overview
+
+### Module summary
+
+This module takes location data from the jurisdictions and prepares it for analysis. Using code developed by Julie Turner, this module will clean the data and harmonize the data sets so that subsequent models have access to matching datasets from each jurisdiction. 
+
+### Module inputs and parameters
+
+Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules)
+If `sourceURL` is specified, `downloadData("caribouLocPrep", "C:/Users/rmcinnes/Documents/caribouPrep")` may be sufficient.
+Table \@ref(tab:moduleInputs-caribouLocPrep) shows the full list of module inputs.
+
+```{r moduleInputs-caribouLocPrep, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("caribouLocPrep", "C:/Users/rmcinnes/Documents/caribouPrep")
+knitr::kable(df_inputs,
+             caption = "List of (ref:caribouLocPrep) input objects and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-caribouLocPrep))
+
+
+```{r moduleParams-caribouLocPrep, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("caribouLocPrep", "C:/Users/rmcinnes/Documents/caribouPrep")
+knitr::kable(df_params, caption = "List of (ref:caribouLocPrep) parameters and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Events
+
+The init event harmonizes the data and creates a study area. The study area can be derived from the harmonized data or from home range estimators like KDE or DBBMM. 
+
+### Plotting
+
+Write what is plotted.
+
+### Saving
+
+Write what is saved.
+
+### Module outputs
+
+Description of the module outputs (Table \@ref(tab:moduleOutputs-caribouLocPrep)).
+
+```{r moduleOutputs-caribouLocPrep, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("caribouLocPrep", "C:/Users/rmcinnes/Documents/caribouPrep")
+knitr::kable(df_outputs, caption = "List of (ref:caribouLocPrep) outputs and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Links to other modules
+
+This module will provide a study area and harmonized location data to subsequent caribou habitat analysis modules. 
+iSSA and RSF modules are the first likely links with others potentially being developed over time.
+
+### Getting help
+
+-   provide a way for people to obtain help (e.g., module repository issues page)
