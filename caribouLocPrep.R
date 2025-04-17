@@ -65,6 +65,8 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...)
+    createsOutput(objectName = "caribouLoc", objectClass = "data.frame", 
+                  desc = "Harmonized and cleaned caribou locations of all jurisdictions provided")
     
   )
 ))
@@ -131,7 +133,7 @@ Init <- function(sim) {
   dat.clean <- dat.bind[complete.cases(x,y, datetime) & between(x, -1665110, 0) &between(y, -98940, 2626920)]
   
   # Save clean data ----
-  sim$booALL <- dat.clean
+  sim$caribouLoc <- dat.clean
   # create study area and buffered study area ----
   coords<- dat.clean%>%st_as_sf(coords = c('x','y'))%>%
     st_set_crs(st_crs(3978))
