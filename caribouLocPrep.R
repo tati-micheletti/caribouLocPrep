@@ -140,15 +140,16 @@ Init <- function(sim) {
   coords<- dat.clean%>%st_as_sf(coords = c('x','y'))%>%
     st_set_crs(st_crs(3978))
   
-  ## 10 km buffer around points to get an idea of extent of study area ----\
+  ## 100 km buffer around points to get an idea of extent of study area 
+  ## A convex hull of all the polygons creates a single polygon for the simulation
   ## This requires a lot of computing power, run the script on a HPC
-  studyArea <- st_buffer(coords, dist = 10000)
-  sa.union <- st_union(studyArea)
-  sim$studyareaFullextent <- sa.union
+  studyArea.buff <- st_buffer(coords, dist = 100000)
+  studyArea.sf <- st_as_sf(studyArea.buff)
+  studyArea.ch <- st_convex_hull(studyArea.sf)
+  
+  sim$studyareaFullextent <- studyArea.ch
   ## save buffered study area ----
   
-  #i think the study area functions (DBBMM, KDE) should be called after the data is harmonized
-  #could be an alternative to the current study area approach
   return(invisible(sim))
 }
 
