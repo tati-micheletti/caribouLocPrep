@@ -66,7 +66,9 @@ defineModule(sim, list(
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...)
     createsOutput(objectName = "caribouLoc", objectClass = "data.frame", 
-                  desc = "Harmonized and cleaned caribou locations of all jurisdictions provided")
+                  desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
+    createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
+                  desc = "a single polygon derived from the full extent of caribou locations")
     
   )
 ))
@@ -142,7 +144,7 @@ Init <- function(sim) {
   ## This requires a lot of computing power, run the script on a HPC
   studyArea <- st_buffer(coords, dist = 10000)
   sa.union <- st_union(studyArea)
-  sim$boosa <- sa.union
+  sim$studyareaFullextent <- sa.union
   ## save buffered study area ----
   
   #i think the study area functions (DBBMM, KDE) should be called after the data is harmonized
