@@ -87,9 +87,8 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-### template initialization
 Init <- function(sim) {
-  browser()
+  #harmonize the jurisdictions provided and remove erroneous points
   dat.all <- list()
   if ("BC" %in% Par$jurisdiction == TRUE){
     bc<- sim$boo$BC
@@ -165,6 +164,7 @@ Init <- function(sim) {
   if (!suppliedElsewhere("boo", sim = sim)) {
     sim$boo <- list()
     if ("BC" %in% Par$jurisdiction == TRUE) {
+      #download just the .gdb files from google drive
       bc_kmb <- prepInputs(url = Par$urlToBCDataFolder,
                            targetFile = "telem_data_request_20211026.gdb.zip",
                            destinationPath = dPath, fun = terra::vect(x = targetFile,layer="KMB_Local_Telemetry_20211026"))
@@ -176,21 +176,25 @@ Init <- function(sim) {
                                     fun = dataPrep_BC(dPath=dPath, bc_kmb, bc_reg))
     }
     if ("SK" %in% Par$jurisdiction == TRUE){
+      #download the spreadsheets of points
       sim$boo[["SK"]] <- prepInputs(url = Par$urlToSKDataFolder,
                                     destinationPath = dPath,
                                     fun = dataPrep_SK(dPath = dPath))
     }
     if ("MB" %in% Par$jurisdiction == TRUE){
+      #download the .gdb files (there are many so this prepInputs takes more time)
       sim$boo[["MB"]] <- prepInputs(url = Par$urlToMBDataFolder,
                                     destinationPath = dPath,
                                     archive = NA,
                                     fun = dataPrep_MB(dPath = dPath))
     }
     if ("YT" %in% Par$jurisdiction == TRUE){
+      #use movebank to access the data
       print("Access to YT data requires a Move Bank account, ensure you have collaboration rights to the study")
       sim$boo[["YT"]] <- prepInputs(fun = dataPrep_YT(loginStored))
     }
     if ("NT" %in% Par$jurisdiction == TRUE){
+      #use movebank to access the data
       print("Access to NT data requires a Move Bank account, ensure you have collaboration rights to the study")
       sim$boo[["NWT"]] <- prepInputs(fun = dataPrep_NT(loginStored))
     }
@@ -225,7 +229,7 @@ dataPrep_SK <- function(dPath =dpath) {
     temp[file == ll,.(file,
                       spaceless(data[[1]][,.SD, .SDcols = names(data[[1]]) %like% 'Sample|Latitude|Longitude|UTM|Datum|Individual|Comments & !Sensitive']))]
   })
-  
+  #standardize the column names
   colnames(prep_sk[[1]])
   newnames <- c('file','date','time','datum','lat','long','UTMzone','northing','easting','id')
   for (dd in 1:length(ls_sk)) {
@@ -237,9 +241,11 @@ dataPrep_SK <- function(dPath =dpath) {
     prep_sk[[dd]][,long:= as.numeric(long)]
   }
   
+  #check for complete entries and remove any incomplete data
   dat_sk <- rbindlist(prep_sk)
   dat_sk <- dat_sk[complete.cases(long,lat, datetime)]
   dat_sk <- dat_sk[long<0&lat>0]
+  # convert from long/lat to NAD83/Canada Atlas Lambert (need units to be m)
   crs <- CRS(st_crs(4326)$wkt)
   outcrs <- st_crs(3978)
   sfboo <- st_as_sf(dat_sk, coords = c('long', 'lat'),
@@ -265,7 +271,7 @@ dataPrep_BC <- function(dPath = dPath, bc_kmb, bc_reg) {
   regional.dt <- regional.dt[!(is.na(Animal_ID)) & Animal_ID != 'None',.(id = Animal_ID, Region, Population_Unit, 
                                                                          datetime, Longitude, Latitude)]
   dat<- rbind(kmb.dt, regional.dt)
-  
+  #check for complete entries and remove any incomplete data
   dat_cleaner <- dat[complete.cases(Longitude,Latitude, datetime)]
   
   
@@ -339,14 +345,10 @@ dataPrep_NT <- function(loginStored) {
   outboo <- st_transform(sfboo, outcrs)
   sim$booNT <- setDT(sfheaders::sf_to_df(outboo, fill = T))
   return(booNT)
-  
-  # save 'clean' data 
-  #saveRDS(boo, paste0(derived, 'prepped-data/NWTprepDat.RDS'))
 }
 
 dataPrep_YT <- function(loginStored) {
   ### Input data ----
-  #add this to cache
   dat <- getMovebankLocationData(study="Boreal Caribou - Yukon Collars", login=loginStored, 
                                  removeDuplicatedTimestamps=TRUE)
   ### Prep data ----
@@ -374,7 +376,7 @@ dataPrep_YT <- function(loginStored) {
 dataPrep_MB <- function(dPath = dPath) {
   ### Input data ----
   raw.mb <- dPath
-  
+  #unzip all of the .gdb files
   MI_Berens <- st_read(file.path(raw.mb, 'CaribouGPSData_AtikakiBerens.gdb.zip'), "MI_Berens_Caribou_2020APR02_CLEAN_NAD83_Z14")
   BERENS_RND <- st_read(file.path(raw.mb, 'CaribouGPSData_AtikakiBerens.gdb.zip'), "BERENS_RND_GPS_2001_to_2004_complete_NAD83Z14")
   BLDVN <- st_read(file.path(raw.mb, 'CaribouGPSData_AtikakiBerens.gdb.zip'), "BLDVN_2000_to_2014_complete_NAD83Z14")
