@@ -24,7 +24,6 @@ defineModule(sim, list(
     defineParameter("urlToMBDataFolder", "character",
                     "https://drive.google.com/drive/folders/1hdTIcpiMueewC1DZsJE1gW8R8mdG7CkF", NA, NA,
                     desc = "The URL to a folder where MB data is kept"),
-    #should be a movebank url
     defineParameter("NWTMovebankID", "character",
                     "", NA, NA,
                     desc = "The MoveBank study ID where NTW is kept"),
@@ -65,7 +64,7 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...)
-    createsOutput(objectName = "caribouLoc", objectClass = "data.frame", 
+    createsOutput(objectName = "caribouLoc", objectClass = "data.table", 
                   desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
     createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
                   desc = "a single polygon derived from the full extent of caribou locations")
@@ -77,7 +76,6 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      
       # run data harmonization
       sim <- Init(sim)
       
@@ -90,45 +88,20 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   #harmonize the jurisdictions provided and remove erroneous points
   dat.all <- list()
-  if ("BC" %in% Par$jurisdiction == TRUE){
-    bc<- sim$boo$BC
-    bc[,any(duplicated(datetime)), by = id]
-    bc <- unique(bc, by = c('id', 'datetime'))
-    bc[,Npts := .N, by = .(id)]
-    bc <- bc[Npts>2] # remove those with only 1 point
-    dat.all[[length(dat.all)+1]] <- (bc[,.(id, jurisdiction = 'bc', pop = Population_Unit, subpop = NA, datetime, x, y)])
+  colnames <- c(BC = "Population_Unit", SK = "SK1", MB = "Range", YT = "Yukon")
+  subpops <- list(BC = NA, SK = NA, MB = NA, NT = "habitat", YT = NA)
+  #data cleaning function
+  rmDupsKeepGT1HarmColumns <- function(dt, jur) {
+    dt[,any(duplicated(datetime)), by = id]
+    dt <- unique(dt, by = c('id', 'datetime'))
+    dt[,Npts := .N, by = .(id)]
+    dt <- dt[Npts>2] # remove those with only 1 point
+    dt[,.(id, jurisdiction = tolower(jur), pop = colnames[jur], subpop = subpops[jur], datetime, x, y)]
   }
-  if ("SK" %in% Par$jurisdiction == TRUE){
-    sk<- sim$boo$SK
-    sk[,any(duplicated(datetime)), by = id]
-    sk <- unique(sk, by = c('id', 'datetime'))
-    #add in the line to remove those with only 1 point
-    dat.all[[length(dat.all)+1]] <- (sk[,.(id, jurisdiction = 'sk', pop = 'SK1', subpop = NA, datetime, x, y)])
-  }
-  if ("MB" %in% Par$jurisdiction == TRUE){
-    mb<- sim$boo$MB
-    mb[,any(duplicated(datetime)), by = id]
-    mb <- unique(mb, by = c('id', 'datetime'))
-    mb[,Npts := .N, by = .(id)]
-    mb <- mb[Npts>2] # remove those with only 1  point
-    dat.all[[length(dat.all)+1]] <- (mb[,.(id, jurisdiction = 'mb', pop = Range, subpop = NA, datetime, x, y)])
-  }
-  if ("YT" %in% Par$jurisdiction == TRUE){
-    yt<- sim$boo$YT
-    yt[,any(duplicated(datetime)), by = id]
-    yt <- unique(yt, by = c('id', 'datetime'))
-    #add in the line to remove those with only 1 point
-    dat.all[[length(dat.all)+1]] <- (yt[,.(id, jurisdiction = 'yt', pop = "Yukon", subpop = NA, datetime, x, y)])
-  }
-  if ("NT" %in% Par$jurisdiction == TRUE){
-    nt<- sim$boo$NT
-    ## check fix rates ####
-    #check for duplicated time stamps
-    nt[,any(duplicated(datetime)), by = id]
-    #We have some duplicated time stamps, these need to be removed prior to creating a track.
-    nt <- unique(nt, by = c('id', 'datetime'))
-    dat.all[[length(dat.all)+1]] <- (nt[,.(id, jurisdiction = 'nwt', pop = area, subpop = habitat, datetime, x, y)])
-  }
+  dat.all <- Map(jur = Par$jurisdiction, function(jur) {
+    dt <- sim$boo[[jur]]
+    rmDupsKeepGT1HarmColumns(dt, jur)
+  })
   dat.bind <- do.call("rbind",dat.all)
   ### remove crazy points in Russia (??) ----
   dat.clean <- dat.bind[complete.cases(x,y, datetime) & between(x, -1665110, 0) &between(y, -98940, 2626920)]
@@ -155,25 +128,25 @@ Init <- function(sim) {
 .inputObjects <- function(sim) {
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-  
   #the login required to access data on Move Bank for YT and NWT
   loginStored <- movebankLogin(username=Par$MoveBankUser, 
                                password=Par$MoveBankPass)
-  
   #run the jurisdictional data prep scripts for the supplied jurisdictions
   if (!suppliedElsewhere("boo", sim = sim)) {
     sim$boo <- list()
     if ("BC" %in% Par$jurisdiction == TRUE) {
       #download just the .gdb files from google drive
-      bc_kmb <- prepInputs(url = Par$urlToBCDataFolder,
-                           targetFile = "telem_data_request_20211026.gdb.zip",
-                           destinationPath = dPath, fun = terra::vect(x = targetFile,layer="KMB_Local_Telemetry_20211026"))
-      bc_reg <- prepInputs(url = Par$urlToBCDataFolder,
-                           targetFile = "telem_data_request_20211026.gdb.zip",
-                           destinationPath = dPath, fun = terra::vect(x = targetFile,layer="Regional_Telemetry_20211026"))
+      layers <- c("KMB_Local_Telemetry_20211026", "Regional_Telemetry_20211026")
+      telemDataZipFile <- "telem_data_request_20211026.gdb.zip"
+      bc_layers <- list()
+      bc_layers <- Map(layer = layers, function(layer) {
+        prepInputs(url = Par$urlToBCDataFolder,
+                   targetFile = telemDataZipFile,
+                   destinationPath = dPath, fun = terra::vect(x = targetFile, layer = layer))
+      })
       
       sim$boo[["BC"]] <- prepInputs(destinationPath = dPath,
-                                    fun = dataPrep_BC(dPath=dPath, bc_kmb, bc_reg))
+                                    fun = dataPrep_BC(dPath=dPath, bc_layers, layers))
     }
     if ("SK" %in% Par$jurisdiction == TRUE){
       #download the spreadsheets of points
@@ -256,10 +229,10 @@ dataPrep_SK <- function(dPath =dpath) {
   return(booSK)
 }
 
-dataPrep_BC <- function(dPath = dPath, bc_kmb, bc_reg) {
+dataPrep_BC <- function(dPath=dPath, bc_layers, layers) {
   ### Input data ----
-  kmb <- bc_kmb
-  regional <- bc_reg
+  kmb <- bc_layers[[layers[1]]]
+  regional <- bc_layers[[layers[2]]]
   
   ### Prep data ----
   # checking for right formats and grabbing what need
