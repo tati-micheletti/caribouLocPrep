@@ -98,17 +98,22 @@ dataPrep_BC <- function(dPath=dPath, bc_layers, layers) {
   
 }
 
-dataPrep_NT <- function(loginStored) {
+dataPrep_NT <- function(loginStored, herds = c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
+                                               'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
+                                               'South Slave Boreal Woodland Caribou')) {
+  
+  browser()
   ### Input data ----
   # NWT dataset names to fill in loop
-  dsNames <-c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
+  herds <-c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
               'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
               'South Slave Boreal Woodland Caribou') 
+
   # make a list of all data from Movebank
   nt.move <- list()
-  for (ds in 1:length(dsNames)) {
+  for (ds in 1:length(herds)) {
     #hh = 1
-    nt.move[[ds]]<-getMovebankLocationData(study =paste0( 'GNWT ', dsNames[[ds]]),
+    nt.move[[ds]]<-getMovebankLocationData(study =paste0( 'GNWT ', herds[[ds]]),
                                            login = loginStored, removeDuplicatedTimestamps=TRUE)
   }
   
