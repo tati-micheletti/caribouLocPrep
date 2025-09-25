@@ -6,17 +6,19 @@ defineModule(sim, list(
   authors = c(person("Julie", "Tuner", email = "", role = c("aut", "cre")),
               person("Rory", "McInnes", email = "", role = c("aut", "cre")),
               person("Eliot", "McIntire", email = "", role = c("aut", "cre")),
-              person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", 
-                     role = c("aut")))),
+              person("Tati", "Micheletti", email = "tati.micheletti@gmail.com",
+                     role = c("aut"))),
   childModules = character(0),
   version = list(caribouLocPrep = "0.0.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "caribouLocPrep.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 2.1.5.9002)", "ggplot2", 'data.table', 'readxl', 'fs', 'tidyr',
-                  'purrr', 'janitor', 'raster','sf','googledrive', 'sfheaders', 'amt', 'Require',
-                  'reproducible', 'move','dplyr', 'terra', "rnaturalearth"), # TODO Double check you REALLY use all packages. Simplify as much as possible!
+  reqdPkgs = c("SpaDES.core (>= 2.1.5.9002)", 
+    "ggplot2", 'data.table', 'readxl', 'fs', 'tidyr',
+    'purrr', 'janitor', 'raster','sf','googledrive', 'sfheaders', 'amt', 'Require',
+    'reproducible', 'move2','dplyr', 'terra', "rnaturalearth"
+  ), # TODO Double check you REALLY use all packages. Simplify as much as possible!
   parameters = bindrows(
     defineParameter("urlToBCDataFolder", "character",
                     "https://drive.google.com/drive/u/0/folders/1spylo1XDqYO1SmvRXfzhIo3v6rsSryZs", NA, NA,
@@ -80,7 +82,7 @@ defineModule(sim, list(
     createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
                   desc = "a single polygon derived from the full extent of caribou locations")
   )
-)
+))
 
 doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
   switch(
@@ -180,7 +182,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
     if ("NT" %in% Par$jurisdiction){
       #use movebank to access the data
       print(paste0("Access to NT data requires a Move Bank account, ensure you",
-                   "have collaboration rights to the study"))
+                   " have collaboration rights to the study"))
       sim$boo[["NT"]] <- prepInputs(fun = dataPrep_NT(loginStored))
     }
   }
