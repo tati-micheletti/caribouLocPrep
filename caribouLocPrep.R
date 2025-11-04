@@ -69,7 +69,7 @@ defineModule(sim, list(
     #createsOutput("objectName", "objectClass", "output object description", ...)
     createsOutput(objectName = "caribouLoc", objectClass = "data.table", 
                   desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
-    createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
+    createsOutput(objectName = "studyArea", objectClass = "vector",
                   desc = "a single polygon derived from the full extent of caribou locations")
     
   )
@@ -90,7 +90,6 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   #harmonize the jurisdictions provided and remove erroneous points
-  browser()
   dat.all <- list()
   colnames <- c(BC = "Population_Unit", SK = "SK1", MB = "Range", YT = "Yukon")
   subpops <- list(BC = NA, SK = NA, MB = NA, NT = "habitat", YT = NA)
