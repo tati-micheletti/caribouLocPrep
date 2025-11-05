@@ -99,6 +99,7 @@ Init <- function(sim) {
     dt <- unique(dt, by = c('id', 'datetime'))
     dt[,Npts := .N, by = .(id)]
     dt <- dt[Npts>2] # remove those with only 1 point
+    dt <- dt[id != ""]
     dt[,.(id, jurisdiction = tolower(jur), pop = colnames[jur], subpop = subpops[jur], datetime, x, y)]
   }
   dat.all <- Map(jur = Par$jurisdiction, function(jur) {
