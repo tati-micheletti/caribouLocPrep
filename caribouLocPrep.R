@@ -69,7 +69,7 @@ defineModule(sim, list(
     #createsOutput("objectName", "objectClass", "output object description", ...)
     createsOutput(objectName = "caribouLoc", objectClass = "data.table", 
                   desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
-    createsOutput(objectName = "studyArea", objectClass = "vector",
+    createsOutput(objectName = "studyArea", objectClass = "SpatVector",
                   desc = "a single polygon derived from the full extent of caribou locations")
     
   )
