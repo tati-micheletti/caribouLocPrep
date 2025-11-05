@@ -122,7 +122,7 @@ Init <- function(sim) {
   studyArea.union <- st_union(studyArea.sf)
   studyArea.ch <- sf::st_convex_hull(studyArea.union)
   
-  sim$studyareaFullextent <- studyArea.ch
+  sim$studyArea <- terra::vect(studyArea.ch)
   ## save buffered study area ----
   
   return(invisible(sim))
