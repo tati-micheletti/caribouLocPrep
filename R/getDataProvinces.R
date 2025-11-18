@@ -98,41 +98,63 @@ dataPrep_BC <- function(dPath=dPath, bc_layers, layers) {
   
 }
 
-dataPrep_NT <- function(loginStored, herds = c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
-                                               'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
-                                               'South Slave Boreal Woodland Caribou')) {
+dataPrep_NT <- function(loginStored, herds) {
   
-  browser()
-  ### Input data ----
-  # NWT dataset names to fill in loop
-  herds <-c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
-              'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
-              'South Slave Boreal Woodland Caribou') 
-
+  habi <- data.table(habs = c('dehcho', 'north.slave', 'sahtu', 'sahtu2020', 'south.slave'),
+                    herd = c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
+                             'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
+                             'South Slave Boreal Woodland Caribou'))
+  hab <- habi[herd %in% herds, habs]
+  
   # make a list of all data from Movebank
   nt.move <- list()
   for (ds in 1:length(herds)) {
-    #hh = 1
-    nt.move[[ds]]<-getMovebankLocationData(study =paste0( 'GNWT ', herds[[ds]]),
+    nt.move[[ds]] <- Cache(move2::movebank_download_study, study = paste0( 'GNWT ', herds[[ds]]),
                                            login = loginStored, removeDuplicatedTimestamps=TRUE)
   }
-  
-  # pull just the data
-  hab <-c('dehcho', 'north.slave', 'sahtu', 'sahtu2020', 'south.slave') 
-  
-  nt <- data.table()
+
   nt <- rbindlist(lapply(1:length(hab), function(hh){
-    nt[,.(area=hab[[hh]], dat=list(setDT(nt.move[[hh]])))]
-  })
-  )
-  
-  # gathering just the columns needed
-  nt.long <- rbindlist(lapply(1:length(hab), function(hh){
-    nt$dat[[hh]][,.(area = hab[[hh]], habitat, id=tag.id, 
-                    location.long, location.lat, datetime = timestamp)]
+    # First, let's work with the specific move2 object.
+    moveTable <- nt.move[[ds]]
     
+    # Move the track-level attributes to the event level
+    # This will add all columns from the track data to the event data.
+    flatMoveTable <- mt_as_event_attribute(moveTable, names(mt_track_data(moveTable)))
+    
+    # The result is still an sf object. To convert it to a data.table,
+    # we should also extract the coordinates from the geometry column.
+    # Then we can drop the geometry and convert to a data.table.
+    
+    # Extract coordinates into separate columns
+    coords <- st_coordinates(flatMoveTable)
+    flatMoveTable$x <- coords[, "X"] # Longitude
+    flatMoveTable$y <- coords[, "Y"] # Latitude
+    
+    # Drop the geometry column
+    flatDF <- st_drop_geometry(flatMoveTable)
+    
+    # Convert the resulting data.frame to a data.table
+    flatDT <- as.data.table(flatDF)
+    tb <- data.table(area = hab[[hh]])
+    tb[,dat := list(setDT(flatDT))]
+
+    return(tb)
+  }), use.names = TRUE)
+
+  # # gathering just the columns needed 
+  #TODO This seems a memory demanding way to drop unused and rename columns.
+  # I would re-write it using data.table original functions as you are anyway 
+  # dropping all the rest of the information
+  nt.long <- rbindlist(lapply(1:length(hab), function(hh){
+    ntD <- nt$dat[[hh]][,.(area = hab[[hh]], 
+                    habitat, 
+                    id=tag_id,
+                    location.long=x, 
+                    location.lat=y, 
+                    datetime = timestamp)]  
+    return(ntD)
   }))
-  
+
   # convert from long/lat to NAD83/Canada Atlas Lambert (need units to be m)
   crs <- CRS(st_crs(4326)$wkt)
   outcrs <- st_crs(3978)
@@ -140,7 +162,7 @@ dataPrep_NT <- function(loginStored, herds = c('Dehcho Boreal Woodland Caribou',
   sfboo <- st_as_sf(nt.long, coords = c('location.long', 'location.lat'),
                     crs = crs)
   outboo <- st_transform(sfboo, outcrs)
-  booNT <- setDT(sfheaders::sf_to_df(outboo, fill = T))
+  booNT <- setDT(sfheaders::sf_to_df(outboo, fill = TRUE))
   return(booNT)
 }
 

@@ -46,6 +46,11 @@ defineModule(sim, list(
                     desc = "The MoveBank user password to access studies stored on MoveBank"),
     defineParameter("jurisdiction", "character",c("BC","SK","MB", "ON", "NT", "YT"),
                     desc = "A list of jurisdictions to run"),
+    defineParameter("herdNT", "character",
+                    c('Dehcho Boreal Woodland Caribou', 'North Slave Boreal Caribou', 
+                      'Sahtu Boreal Woodland Caribou', 'Sahtu Boreal Woodland Caribou (2020)',
+                      'South Slave Boreal Woodland Caribou'),
+                    desc = "A list of specific herds from NT to download data from"),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -71,14 +76,18 @@ defineModule(sim, list(
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName = "boo", objectClass = "list",
-                 desc = "List of data.table objects with caribou GPS information, per province", sourceURL = NA),
+                 desc = "List of data.table objects with raw caribou GPS information, per province", sourceURL = NA),
     expectsInput(objectName = "caribouLoc", objectClass = "list",
-                 desc = "List of data.table objects with caribou GPS information, per province", sourceURL = NA)
+                 desc = "List of data.table objects with processed caribou GPS information, per province", sourceURL = NA)
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...)
     createsOutput(objectName = "caribouLoc", objectClass = "data.table", 
                   desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
+    createsOutput(objectName = "boo", objectClass = "list",
+                 desc = paste0("List of data.table objects with caribou GPS",
+                               "information, per province, created in",
+                               ".inputObjects if not provided")),
     createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
                   desc = "a single polygon derived from the full extent of caribou locations")
   )
@@ -88,6 +97,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
+      browser()
       # Test if user has movebank info IF it is running for data that is there
       if (any("YT" %in% Par$jurisdiction,
               "NT" %in% Par$jurisdiction)){
@@ -116,10 +126,12 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
     },
     downloadData = {
       # run data harmonization
+      browser()
       sim$caribouLoc <- downloadDataAndHarmonize(jurisdiction = Par$jurisdiction, 
                                                  boo = sim$boo)
     },
     createFullExtent = {
+      browser()
       # create study area buffered
       sim$studyareaFullextent <- createStudyAreaExtent(dat.clean = sim$caribouLoc,
                                                        rangeBuffer = Par$rangeBuffer)
@@ -132,9 +144,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
 .inputObjects <- function(sim) {
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-  #the login required to access data on Move Bank for YT and NWT
-  loginStored <- movebankLogin(username=Par$MoveBankUser, 
-                               password=Par$MoveBankPass)
+
   #run the jurisdictional data prep scripts for the supplied jurisdictions
   if (!suppliedElsewhere("boo", sim = sim)) {
     sim$boo <- list()
@@ -175,15 +185,21 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
                                     fun = dataPrep_ON(dPath = dPath))
     }
     if ("YT" %in% Par$jurisdiction){
+      #the login required to access data on Move Bank for YT and NWT
+      loginStored <- move2::movebank_store_credentials(username=Par$MoveBankUser, 
+                                                       password=Par$MoveBankPass)
       #use movebank to access the data
       print("Access to YT data requires a Move Bank account, ensure you have collaboration rights to the study")
-      sim$boo[["YT"]] <- prepInputs(fun = dataPrep_YT(loginStored))
+      sim$boo[["YT"]] <- dataPrep_YT(loginStored)
     }
     if ("NT" %in% Par$jurisdiction){
+      #the login required to access data on Move Bank for YT and NWT
+      loginStored <- move2::movebank_store_credentials(username=Par$MoveBankUser, 
+                                                       password=Par$MoveBankPass)
       #use movebank to access the data
       print(paste0("Access to NT data requires a Move Bank account, ensure you",
                    " have collaboration rights to the study"))
-      sim$boo[["NT"]] <- prepInputs(fun = dataPrep_NT(loginStored))
+      sim$boo[["NT"]] <- Cache(dataPrep_NT, loginStored, herds = Par$herdNT)
     }
   }
   return(invisible(sim))
