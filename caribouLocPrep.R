@@ -122,8 +122,10 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
           stop(errorMessage)
         }
       }
+      sim <- scheduleEvent(sim, time(sim), "caribouLocPrep", "downloadData")
+      sim <- scheduleEvent(sim, time(sim), "caribouLocPrep", "createFullExtent")
       
-    },
+      },
     downloadData = {
       # run data harmonization
       browser()
