@@ -88,7 +88,7 @@ defineModule(sim, list(
                  desc = paste0("List of data.table objects with caribou GPS",
                                "information, per province, created in",
                                ".inputObjects if not provided")),
-    createsOutput(objectName = "studyareaFullextent", objectClass = "vector",
+    createsOutput(objectName = "studyArea", objectClass = "SpatVector",
                   desc = "a single polygon derived from the full extent of caribou locations")
   )
 ))
@@ -97,7 +97,6 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      browser()
       # Test if user has movebank info IF it is running for data that is there
       if (any("YT" %in% Par$jurisdiction,
               "NT" %in% Par$jurisdiction)){
@@ -128,15 +127,14 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
       },
     downloadData = {
       # run data harmonization
-      browser()
       sim$caribouLoc <- downloadDataAndHarmonize(jurisdiction = Par$jurisdiction, 
                                                  boo = sim$boo)
     },
     createFullExtent = {
-      browser()
       # create study area buffered
-      sim$studyareaFullextent <- createStudyAreaExtent(dat.clean = sim$caribouLoc,
+      sim$studyArea <- Cache(studyareaFullextent, dat.clean = sim$caribouLoc,
                                                        rangeBuffer = Par$rangeBuffer)
+      sim$studyArea <- terra::vect(sim$studyArea)
     },
     warning(noEventWarning(sim))
   )
