@@ -15,9 +15,9 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "caribouLocPrep.Rmd"),
   reqdPkgs = c("SpaDES.core (>= 2.1.5.9002)", 
-    "ggplot2", 'data.table', 'readxl', 'fs', 'tidyr',
-    'purrr', 'janitor', 'raster','sf','googledrive', 'sfheaders', 'amt', 'Require',
-    'reproducible', 'move2','dplyr', 'terra', "rnaturalearth"
+               "ggplot2", 'data.table', 'readxl', 'fs', 'tidyr',
+               'purrr', 'janitor', 'raster','sf','googledrive', 'sfheaders', 'amt', 'Require',
+               'reproducible', 'move2','dplyr', 'terra', "rnaturalearth"
   ), # TODO Double check you REALLY use all packages. Simplify as much as possible!
   parameters = bindrows(
     defineParameter("urlToBCDataFolder", "character",
@@ -85,11 +85,12 @@ defineModule(sim, list(
     createsOutput(objectName = "caribouLoc", objectClass = "data.table", 
                   desc = "Harmonized and cleaned caribou locations of all jurisdictions provided"),
     createsOutput(objectName = "boo", objectClass = "list",
-                 desc = paste0("List of data.table objects with caribou GPS",
-                               "information, per province, created in",
-                               ".inputObjects if not provided")),
+                  desc = paste0("List of data.table objects with caribou GPS",
+                                "information, per province, created in",
+                                ".inputObjects if not provided")),
     createsOutput(objectName = "studyArea", objectClass = "SpatVector",
                   desc = "a single polygon derived from the full extent of caribou locations")
+    
   )
 ))
 
@@ -124,7 +125,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim), "caribouLocPrep", "downloadData")
       sim <- scheduleEvent(sim, time(sim), "caribouLocPrep", "createFullExtent")
       
-      },
+    },
     downloadData = {
       # run data harmonization
       sim$caribouLoc <- downloadDataAndHarmonize(jurisdiction = Par$jurisdiction, 
@@ -133,7 +134,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
     createFullExtent = {
       # create study area buffered
       sim$studyArea <- Cache(studyareaFullextent, dat.clean = sim$caribouLoc,
-                                                       rangeBuffer = Par$rangeBuffer)
+                             rangeBuffer = Par$rangeBuffer)
       sim$studyArea <- terra::vect(sim$studyArea)
     },
     warning(noEventWarning(sim))
@@ -144,7 +145,7 @@ doEvent.caribouLocPrep = function(sim, eventTime, eventType) {
 .inputObjects <- function(sim) {
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
+  
   #run the jurisdictional data prep scripts for the supplied jurisdictions
   if (!suppliedElsewhere("boo", sim = sim)) {
     sim$boo <- list()
